@@ -5,6 +5,10 @@ date: "1/19/2022"
 output: html_document
 ---
 
+# Background:
+
+This could uses data collected by CalCOFI on the physical parameters of water off California's coast. In this analysis, two models are considered which aim to predict oxygen saturation based on a combination of variables. The performance of linear models is compared using both AIC and k-fold cross validation. A final model is then selected and displayed.
+
 ```{r setup, include=TRUE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
@@ -17,6 +21,10 @@ library(AICcmodavg)
 # read in data
 samples = read_csv(here("data", "calcofi_seawater_samples.csv"))
 ```
+
+# Building the Models and AIC Analysis
+
+Model 1 predicts O2 saturation as a function of water temperatue, salinity, and phosphate concentraion, while Model 2 includes all the above variables as well as water depth. 
 
 ```{r}
 # build two models, O2 saturation as func of 1) water temp, salinity, phosphate concentration and 2) water temp, salinity, phosphate concentration, depth
@@ -33,21 +41,18 @@ aictab(list(mdl1, mdl2))
 
 Model 2, which considers O2 saturation as a function of water temp, salinity, phosphate concentration, and depth, outperforms Model 1 which does not include depth. It's AICc score is > 2 points better, implying a significant improvement. 
 
+# Cross Validation Analysis
+
+For this k-fold cross validation, 10 folds are used and models are scored based on their root-mean-squared error. Then a superior model is selected to be trained on the entire dataset. 
+
 ```{r}
 # initialize "folds" and data frames for cross validation analysis
 folds = 10
 fold_vec = rep(1:folds, length.out = nrow(samples))
-table(fold_vec)
-
-set.seed(61) # fix the random numbers for repeatability
-
+# fix the random numbers for repeatability
+set.seed(61) 
 samples_fold = samples %>% 
   mutate(group = sample(fold_vec, size = n(), replace = FALSE))
-# first fold
-test_df = samples_fold %>% 
-  filter(group == 1)
-train_df = samples_fold %>% 
-  filter(group != 1)
 ```
 
 ```{r root mean square error function}
@@ -59,10 +64,55 @@ calc_rmse = function(x, y) {
 ```
 
 ```{r}
-# build formulas for training
+# build formulas to use in models
 f1 = o2sat ~ t_deg_c + salinity + po4u_m
 f2 = o2sat ~ t_deg_c + salinity + po4u_m + depth_m
+```
+ 
+```{r}
+# initialize rmse dataframe to store rmse values
+rmse_df = data.frame()
+# loop through all folds
+for(i in 1:folds) {
+  # build training and testing data frames for each loop
+  kfold_test_df = samples_fold %>% 
+    filter(group == i)
+  kfold_train_df = samples_fold %>% 
+    filter(group != i)
+  # build models from formulas 1 and 2
+  kfold_mdl1 = lm(f1, data = kfold_train_df)
+  kfold_mdl2 = lm(f2, data = kfold_train_df)
+  # predict test data from models 1 and 2
+  kfold_pred_df = kfold_test_df %>% 
+    mutate(mdl1 = predict(kfold_mdl1, kfold_test_df),
+           mdl2 = predict(kfold_mdl2, kfold_test_df))
+  # calculate root mean squared error (rmse) of each model
+  kfold_rmse = kfold_pred_df %>% 
+    summarize(rmse_mdl1 = calc_rmse(mdl1, o2sat),
+              rmse_mdl2 = calc_rmse(mdl2, o2sat))
+  # append new fold's rmse to bottom each time through loop
+  rmse_df = bind_rows(rmse_df, kfold_rmse) 
+}
+# display rmse dataframe
+rmse_df %>% 
+  summarize(mean_rmse_mdl1 = mean(rmse_mdl1),
+            mean_rmse_mdl2 = mean(rmse_mdl2))
+# percent difference
+pdiff = 100*(mean(rmse_df$rmse_mdl1) - mean(rmse_df$rmse_mdl2))/mean(rmse_df$rmse_mdl1)
 ```
 
 
 
+Model 2, which considers O2 saturation as a function of water temp, salinity, phosphate concentration, and depth, marginally outperforms Model 1, with an average root-mean-squared error `r round(pdiff,2)`% less. This difference is relatively insignificant, but model 2 will now be trained as the "final model" on the entire dataset.
+
+```{r}
+final_mdl = lm(f2, data = samples)
+```
+
+My Final Model:
+
+`r equatiomatic::extract_eq(final_mdl, wrap = TRUE, use_coefs = TRUE)`
+
+# Data Citation
+
+CalCOFI data are available for use without restriction. Data downloaded from https://calcofi.org/ccdata.html.  Accessed 1/10/2022.
