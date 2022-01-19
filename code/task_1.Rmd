@@ -1,0 +1,81 @@
+---
+title: "Data wrangling & visualization (Sierra amphibians)"
+author: "Jaxon Stuhr"
+date: "1/18/2022"
+output: html_document
+---
+
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(readxl)
+library(tidyverse)
+library(cowplot)
+library(here)
+library(lubridate)
+```
+
+```{r}
+# read in data 
+amphs_raw = read_excel(here("data", "sierra_amphibians.xlsx"))
+# clean up dates and add "year" column
+amphs = amphs_raw %>% 
+  mutate(survey_date = ymd(survey_date)) %>% 
+  mutate(year = year(survey_date))
+```
+
+```{r}
+# create subset with only Adult, SubAdult, and Tadpole mountain yellow-legged frogs (RAMU)
+amphs_sub_1 = amphs %>% 
+  filter(
+    amphibian_life_stage %in% c("Adult", "SubAdult", "Tadpole"),
+    amphibian_species == "RAMU"
+    )
+# groupby year and life stage and summarize counts
+amphs_summary_1 = amphs_sub_1 %>% 
+  group_by(amphibian_life_stage, year) %>% 
+  summarize(count = n())
+```
+
+```{r}
+# plot count by year colored by life-cycle stage
+ggplot(amphs_summary_1, aes(x = year, y = count, fill = amphibian_life_stage)) + 
+  geom_col() +
+  guides(fill=guide_legend(title="Life Stage")) + 
+  labs(x = "Year", y = "Number Observed Frogs") + 
+  theme_minimal()
+```
+
+Figure 1: Observed mountain yellow-legged frogs (*Rana muscosa*) by year and life stage in southern Sierra Nevada water bodies
+
+```{r}
+# create subset with only Adult, SubAdult, and Tadpole mountain yellow-legged frogs (RAMU)
+amphs_sub_2 = amphs %>% 
+  filter(
+    amphibian_life_stage %in% c("Adult", "SubAdult"),
+    amphibian_species == "RAMU"
+    )
+# groupby lake_id, slice top 5 counts, and rename lakes
+amphs_summary_2 = amphs_sub_2 %>% 
+  group_by(lake_id) %>% 
+  summarize(count = n()) %>% 
+  slice_max(order_by = count, n = 5) %>% 
+  mutate(lake_id = case_when(
+    lake_id == 50183 ~ "Lake 50183",
+    lake_id == 70583 ~ "Lake 70583",
+    lake_id == 10226 ~ "Lake 10226",
+    lake_id == 41322 ~ "Lake 41322",
+    lake_id == 50219 ~ "Lake 50219"
+  )) %>% 
+  # order by count
+  mutate(lake_id = fct_reorder(lake_id, count))
+```
+
+```{r}
+# plot frog counts by lake_id
+ggplot(amphs_summary_2, aes(x = lake_id, y = count)) + 
+  geom_col(fill = 'darkgreen') + 
+  theme_minimal() + 
+  labs(x = "Number Observed Frogs", y = "Number Observed Frogs")
+```
+
+Fig 2: Observed mountain yellow-legged frogs (*Rana muscosa*) for five southern Sierra lakes with most observations from 1995 - 2002
