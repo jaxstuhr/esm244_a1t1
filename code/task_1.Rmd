@@ -5,6 +5,8 @@ date: "1/18/2022"
 output: html_document
 ---
 
+This code wrangles and visualizes data collected by the Sierra Lakes Inventory Project (SLIP). Frogs of a variety of species were observed in southern Sierra Nevada water bodies between 1995 and 2002. The following visualizations focus on mountain yellow-legged frogs (*Rana muscosa*) and sort by year, life-stage, and lake in which they were observed. 
+
 ```{r setup, include=TRUE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(readxl)
@@ -54,7 +56,7 @@ amphs_sub_2 = amphs %>%
     amphibian_life_stage %in% c("Adult", "SubAdult"),
     amphibian_species == "RAMU"
     )
-# groupby lake_id, slice top 5 counts, and rename lakes
+# group_by lake_id, slice top 5 counts, and rename lakes
 amphs_summary_2 = amphs_sub_2 %>% 
   group_by(lake_id) %>% 
   summarize(count = n()) %>% 
@@ -79,3 +81,7 @@ ggplot(amphs_summary_2, aes(x = lake_id, y = count)) +
 ```
 
 Fig 2: Observed mountain yellow-legged frogs (*Rana muscosa*) for five southern Sierra lakes with most observations from 1995 - 2002
+
+Data citation:
+
+Knapp, R.A., C. Pavelka, E.E. Hegeman, and T.C. Smith. 2020. The Sierra Lakes Inventory Project: Non-Native fish and community composition of lakes and ponds in the Sierra Nevada, California ver 2. Environmental Data Initiative. https://doi.org/10.6073/pasta/d835832d7fd00d9e4466e44eea87fab3
