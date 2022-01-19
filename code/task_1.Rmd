@@ -5,6 +5,8 @@ date: "1/18/2022"
 output: html_document
 ---
 
+### Background
+
 This code wrangles and visualizes data collected by the Sierra Lakes Inventory Project (SLIP). Frogs of a variety of species were observed in southern Sierra Nevada water bodies between 1995 and 2002. The following visualizations focus on mountain yellow-legged frogs (*Rana muscosa*) and sort by year, life-stage, and lake in which they were observed. 
 
 ```{r setup, include=TRUE, message = FALSE, warning = FALSE}
@@ -40,14 +42,13 @@ amphs_summary_1 = amphs_sub_1 %>%
 
 ```{r}
 # plot count by year colored by life-cycle stage
-ggplot(amphs_summary_1, aes(x = year, y = count, fill = amphibian_life_stage)) + 
+plot1 = ggplot(amphs_summary_1, aes(x = year, y = count, fill = amphibian_life_stage)) + 
   geom_col() +
   guides(fill=guide_legend(title="Life Stage")) + 
   labs(x = "Year", y = "Number Observed Frogs") + 
   theme_minimal()
 ```
 
-Figure 1: Observed mountain yellow-legged frogs (*Rana muscosa*) by year and life stage in southern Sierra Nevada water bodies
 
 ```{r}
 # create subset with only Adult, SubAdult, and Tadpole mountain yellow-legged frogs (RAMU)
@@ -74,14 +75,21 @@ amphs_summary_2 = amphs_sub_2 %>%
 
 ```{r}
 # plot frog counts by lake_id
-ggplot(amphs_summary_2, aes(x = lake_id, y = count)) + 
+plot2 = ggplot(amphs_summary_2, aes(x = lake_id, y = count)) + 
   geom_col(fill = 'darkgreen') + 
   theme_minimal() + 
-  labs(x = "Number Observed Frogs", y = "Number Observed Frogs")
+  labs(x = "Lake", y = "") +
+  theme(axis.text.x = element_text(angle = 30)) 
 ```
 
-Fig 2: Observed mountain yellow-legged frogs (*Rana muscosa*) for five southern Sierra lakes with most observations from 1995 - 2002
+### Data Visualization
 
-Data citation:
+```{r}
+# combine figure
+plot_grid(plot1, plot2, labels = c('A', 'B'), label_size = 12)
+```
+Figure 1: Observed mountain yellow-legged frogs (*Rana muscosa*) by (1a) year and life stage and by (1b) the five lakes with most observed frogs in southern Sierra Nevada water bodies
+
+### Data citation:
 
 Knapp, R.A., C. Pavelka, E.E. Hegeman, and T.C. Smith. 2020. The Sierra Lakes Inventory Project: Non-Native fish and community composition of lakes and ponds in the Sierra Nevada, California ver 2. Environmental Data Initiative. https://doi.org/10.6073/pasta/d835832d7fd00d9e4466e44eea87fab3
